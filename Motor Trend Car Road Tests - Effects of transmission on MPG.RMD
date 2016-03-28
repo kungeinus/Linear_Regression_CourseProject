@@ -1,0 +1,123 @@
+---
+title: "Motor Trend Car Road Tests - Effects of transmission on MPG"
+author: "Zhenkun Guo"
+date: "March 27, 2016"
+output: pdf_document
+---
+##1. Executive Summary
+
+This detailed analysis has been performed to fulfill the requirements of the course project for the course [Regression Models](https://www.coursera.org/course/regmods) offered by the [Johns Hopkins University](https://www.coursera.org/jhu) on [Coursera](https://www.coursera.org/). In this project, we will analyze the mtcars data set and explore the relationship between a set of variables and miles per gallon (MPG) which will be our outcome.
+
+The main objectives of this research are as follows
+
+* Is an automatic or manual transmission better for MPG?
+
+* Quantifying how different is the MPG between automatic and manual transmissions?
+
+The key takeway from our analysis was
+
+* Manual transmission looks better for MPG but trend is not significant.
+
+* MPG value for manual transmission is about 1.48 larger than for automatic transmission according to my         best model
+
+##2. Data and Necessary Package
+
+We load in the data set, perform the necessary data transformations by factoring the necessary variables and look at the data, in the following section.
+
+```{r}
+library(ggplot2)
+data("mtcars")
+head(mtcars)
+```
+
+##3. Exploratory Data Analysis
+
+#3.1. Direct Comparasion of Transmission Types
+
+Since we are interested in the effects of car transmission type on mpg, we plot boxplots of the variable mpg when am is Automatic or Manual. This plot depicts an increase in the mpg when the transmission is Manual.
+
+```{r}
+figure1<-ggplot(mtcars,aes(x=factor(am, labels = c("Auto","Manual")),y=mpg,fill=factor(am, labels = c("Auto","Manual"))))
+figure1<-figure1+geom_boxplot()
+figure1<-figure1+scale_fill_discrete(name = "Transmission Type")
+figure1<-figure1 + theme_bw() + xlab("Transmission Type") + ylab("Miles Per Gallon")
+figure1
+```
+
+#3.2. Related Variables to MPG besides Transmission Type
+
+In this section, we dive deeper into our data and explore various relationships between variables of interest. We plot the relationships between all the variables of the dataset. From the plot, we notice that variables like cyl, disp, hp, drat, wt, qsec seem to have some strong correlation with mpg. But we will use linear models to quantify that in the regression analysis section. In the figure, red dots indicate automatic transmission and green dots indicate manual transimission.
+
+```{r,fig.height=10, fig.width=12}
+nt_mtcars<-subset(mtcars,select = c(1:7))
+pairs(nt_mtcars, panel = panel.smooth, col =  mtcars$am +2)
+```
+
+##4. Regression Analysis
+
+#4.1 Simple Model with Only Transmission Type
+
+```{r}
+fit1<-lm(mpg ~ factor(am), data = mtcars)
+summary(fit1)
+```
+
+With this simple model, we can verify the idea than mpg for manual transmission is higher than automatic transmission by 7.24 if we ignore the influence of other variables. Adjusted R-squared is only 0.3385, which mean the model can't explain the variation of mpg well.
+
+#4.2. Four Regressors Model with AM, CYL, HP, WT
+
+```{r}
+fit4<-lm(mpg ~ factor(am) + cyl + hp + wt, data = mtcars)
+summary(fit4)
+```
+
+With this model, we can see the mpg for manual transmission is higher than automatic by 1.48, which is much lower than the simpel model. This can be understood because the correlation between the transmission type and other regressors like cyl, hp or wt. This idea can be verified by the pairs plots seeing the distribution of colored dots. Adjusted R-squared is 0.8267.
+
+#4.3. Six Regressors Model with AM, CYL, HP, WT, DISP, QSEC
+
+```{r}
+fit6<-lm(mpg ~ factor(am) + cyl + hp + wt + disp +qsec, data = mtcars)
+summary(fit6)
+```
+
+With this model, we can see the mpg for manual transmission is higher than automatic by 2.94. Adjusted R-squared is 0.8337 slighter higher than the four regressors model.
+
+##5. Model Selection and Residual Analysis
+
+#5.1. Model Selection
+
+The R-squared value is relatively low for the simplest model, so this model might not be enough to explain the variation of mpg. However, by adding two more regressors DISP and QSEC, the increasement of R-squared is not significant. So six regressors model might not be neccessary. To verifty this idea, we call the anova function to compare the models.
+
+```{r}
+anova(fit1,fit4,fit6)
+```
+
+We can see adding cyl, hp and wt to the model is significant but adding two more regressors (disp, qsec) is not significant. So we decide here, the four regressors model with am, cyl, hp and wt is our best model.
+
+#5.2. Conclusion and Confidence Interval
+
+```{r}
+summary(fit4)
+confint(fit4)
+```
+
+P-value for am is 0.3142, which is not significant. We can also see here the 95% confidence interval for the influence of transmission type is (-1.48,4.44), which includes 0. So, here we conclude that manual transimission is not significantly better than automatic transmission respect to mpg.
+
+#5.3. Residual Analysis
+
+```{r, fig.height=10, fig.width=10}
+par(mfrow = c(2, 2))
+plot(fit4)
+```
+
+From the above plots, we can make the following observations,
+
+* The points in the Residuals vs. Fitted plot seem to be randomly scattered on the plot and verify the independence condition.
+
+* The Normal Q-Q plot consists of the points which mostly fall on the line indicating that the residuals are normally distributed.
+
+* The Scale-Location plot consists of points scattered in a constant band pattern, indicating constant variance.
+
+* There are some distinct points of interest (Toyota Carolla and Chrysler Imperial for instance) in the plots.
+
+This model works well for the data
